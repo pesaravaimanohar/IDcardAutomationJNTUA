@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College ID Card Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+        }
+
+        /* Base ID card styles */
+        .id-card-container {
+            width: 350px;
+            height: 600px;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            background-color: #f0f3e5;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+            background-clip: padding-box;
+        }
+
+        .id-card-header {
+            text-align: center;
+            background-color: #1e2fa2;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .logo-photo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+            height: 100px; /* Explicit height for layout stability */
+        }
+
+        .logo, .photo, .sign {
+            object-fit: cover;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+        }
+
+        .photo {
+            width: 80px;
+            height: 100px;
+            border: 3px solid black;
+            flex-shrink: 0;
+        }
+        
+        .blood-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: red;
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .blood-group p {
+            margin: 0;
+        }
+
+        .blood-icon {
+            width: 20px;
+            height: 20px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .details .row {
+            display: grid;
+            grid-template-columns: 120px auto;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .details .value::before {
+            content: ":";
+            margin-right: 8px;
+            color: #1e2fa2;
+        }
+
+        .details .label {
+            font-weight: bold;
+            color: #2539ba;
+        }
+
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .signature-block {
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .sign {
+            width: 80px;
+            height: 40px;
+            border-bottom: 1px solid #000;
+            object-fit: contain;
+        }
+
+        .address {
+            font-size: 12px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border: 1px solid orange;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .validity {
+            text-align: center;
+            font-weight: bold;
+            color: red;
+            font-size: 13px;
+        }
+        
+        #batch-preview-area .id-card-container {
+            transform: scale(0.8);
+            transform-origin: top left;
+            margin-bottom: -100px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 lg:p-8">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">College ID Card Generator</h1>
+
+        <!-- Single Card Generator Section -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-center text-gray-700 mb-6 border-b-2 pb-2">Single ID Card</h2>
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Form Section -->
+                <div class="w-full lg:w-1/2 bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 text-gray-700">Enter Details</h3>
+                    <form id="idForm" class="space-y-4">
+                        <!-- Form fields -->
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-600">Full Name</label>
+                            <input type="text" id="name" onkeyup="updateCard()" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Pesaravai Manohar">
+                        </div>
+                        <div>
+                            <label for="admissionNo" class="block text-sm font-medium text-gray-600">Admission No</label>
+                            <input type="text" id="admissionNo" onkeyup="updateCard()" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 24001F0057">
+                        </div>
+                        <div>
+                            <label for="course" class="block text-sm font-medium text-gray-600">Course</label>
+                            <input type="text" id="course" onkeyup="updateCard()" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., M.C.A">
+                        </div>
+                        <div>
+                            <label for="branch" class="block text-sm font-medium text-gray-600">Branch</label>
+                            <input type="text" id="branch" onkeyup="updateCard()" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., C.S.E">
+                        </div>
+                        <div>
+                            <label for="dob" class="block text-sm font-medium text-gray-600">Date of Birth</label>
+                            <input type="date" id="dob" onchange="updateCard()" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="bloodGroup" class="block text-sm font-medium text-gray-600">Blood Group</label>
+                            <select id="bloodGroup" onchange="updateCard()" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option>
+                            </select>
+                        </div>
+                         <div>
+                            <label for="address" class="block text-sm font-medium text-gray-600">Address</label>
+                            <textarea id="address" onkeyup="updateCard()" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter full address"></textarea>
+                        </div>
+                         <div>
+                            <label for="cell" class="block text-sm font-medium text-gray-600">Cell Number</label>
+                            <input type="text" id="cell" onkeyup="updateCard()" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 7672060147">
+                        </div>
+                        <div>
+                            <label for="validity" class="block text-sm font-medium text-gray-600">Valid Up To</label>
+                            <input type="text" id="validity" onkeyup="updateCard()" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., June 2026">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="photoUpload" class="block text-sm font-medium text-gray-600">Student Photo</label>
+                                <input type="file" id="photoUpload" accept="image/*" onchange="previewImage(event, 'cardPhoto')" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                            </div>
+                            <div>
+                                <label for="studentSignUpload" class="block text-sm font-medium text-gray-600">Student Signature</label>
+                                <input type="file" id="studentSignUpload" accept="image/*" onchange="previewImage(event, 'cardStudentSign')" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ID Card Preview Section -->
+                <div class="w-full lg:w-1/2 flex flex-col items-center">
+                    <h3 class="text-xl font-bold mb-4 text-gray-700">Live Preview</h3>
+                    <div id="idCard" class="id-card-container">
+                        <!-- ID Card content -->
+                        <div class="id-card-header">
+                            <h2>JNTUA<br>COLLEGE OF ENGINEERING<br>[AUTONOMOUS]<br>ANANTHAPURAMU-515002[A.P]</h2>
+                        </div>
+                        <div class="logo-photo">
+                            <img src="https://i.ibb.co/hxvPcV0z/college-logo.png" alt="College Logo" id="cardLogo" class="logo">
+                            <img src="https://placehold.co/80x100/e0e0e0/000?text=Photo" alt="Student Photo" id="cardPhoto" class="photo">
+                            <div class="blood-group">
+                                <svg class="blood-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="#ff0000" d="M192 512C86 512 0 426 0 320C0 228.8 130.2 57.7 166.6 11.7C172.6 4.2 181.5 0 191.1 0h1.8c9.6 0 18.5 4.2 24.5 11.7C253.8 57.7 384 228.8 384 320c0 106-86 192-192 192z"/></svg>
+                                <p id="cardBloodGroup">O+</p>
+                            </div>
+                        </div>
+                        <div class="details">
+                            <div class="row"><span class="label">Name</span><span class="value" id="cardName">Your Name</span></div>
+                            <div class="row"><span class="label">Admission No</span><span class="value" id="cardAdmissionNo">Admission No.</span></div>
+                            <div class="row"><span class="label">Course</span><span class="value" id="cardCourse">Course</span></div>
+                            <div class="row"><span class="label">Branch</span><span class="value" id="cardBranch">Branch</span></div>
+                            <div class="row"><span class="label">DOB</span><span class="value" id="cardDob">DD/MM/YYYY</span></div>
+                        </div>
+                        <hr class="my-2 border-gray-400">
+                        <div class="signatures">
+                            <div class="signature-block">
+                                <img src="https://placehold.co/80x40/ffffff/000?text=Sign" alt="Signature" id="cardStudentSign" class="sign mx-auto">
+                                <p>Student<br>Signature</p>
+                            </div>
+                            <div class="signature-block">
+                                <img src="https://i.ibb.co/s9XkTgX0/principal-signature.png" alt="Principal Signature" id="cardPrincipalSign" class="sign mx-auto">
+                                <p>Principal<br>Signature</p>
+                            </div>
+                        </div>
+                        <div class="address">
+                            <p><strong>Address:</strong> <span id="cardAddress">Your Address</span><br>
+                            <strong>Cell:</strong> <span id="cardCell">Your Cell</span></p>
+                        </div>
+                        <div class="validity">
+                            <p>Valid Up To: <span id="cardValidity">Expiry Date</span></p>
+                        </div>
+                    </div>
+                    <button onclick="downloadIDCard('idCard', 'ID_Card.png')" class="mt-6 px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-transform transform hover:scale-105">
+                        Download ID Card
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Card Generator Section -->
+        <div>
+            <h2 class="text-2xl font-bold text-center text-gray-700 mb-6 border-b-2 pb-2">Bulk Generate from Excel</h2>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="mb-4 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-700">
+                    <p class="font-bold">Instructions</p>
+                    <p>1. Upload an Excel file (.xlsx) with student data. The columns must have the following headers (they are **case-sensitive**):</p>
+                    <code class="block bg-gray-200 p-2 rounded my-2 text-sm">Name, AdmissionNo, Course, Branch, DOB, BloodGroup, Address, Cell, Validity, Photo, Signature</code>
+                    <p>2. The 'Photo' and 'Signature' columns should contain the exact filenames (e.g., 'photo1.jpg').</p>
+                    <p>3. The 'DOB' column should be in `DD/MM/YYYY` format. For best results, format this column as **Text** in Excel before entering dates.</p>
+                    <p>4. Upload all student photos and signatures below. The filenames must match those in the Excel sheet.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">1. Upload Excel File</label>
+                        <input type="file" id="excelUpload" accept=".xlsx" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">2. Upload Student Photos</label>
+                        <input type="file" id="batchPhotoUpload" accept="image/*" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">3. Upload Student Signatures</label>
+                        <input type="file" id="batchSignUpload" accept="image/*" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                    </div>
+                    <div class="md:col-span-2 flex justify-center">
+                         <button onclick="handleFileUpload()" class="px-8 py-3 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700">
+                            Generate Cards
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="bulk-controls" class="mt-6 text-center space-x-4 hidden">
+                 <button onclick="downloadAllAsZip()" id="downloadAllBtn" class="px-8 py-3 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700 disabled:bg-gray-400">
+                    Download All as ZIP
+                </button>
+                 <button onclick="downloadAllAsPdf()" id="downloadPdfBtn" class="px-8 py-3 bg-purple-600 text-white font-bold rounded-lg shadow-md hover:bg-purple-700 disabled:bg-gray-400">
+                    Download All as PDF
+                </button>
+                <p id="loading-message" class="mt-2 text-gray-600"></p>
+            </div>
+
+            <div id="batch-preview-area" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Batch generated cards will be appended here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Store for uploaded image data URLs
+        let imageStore = { photos: {}, signatures: {} };
+
+        // --- UTILITY FUNCTIONS ---
+        function formatDate(dateString) {
+            if (!dateString) return 'DD/MM/YYYY';
+            const s = String(dateString);
+
+            // Try parsing YYYY-MM-DD (from <input type="date">)
+            let parts = s.split('-');
+            if (parts.length === 3 && parts[0].length === 4) {
+                const [year, month, day] = parts;
+                return `${day}/${month}/${year}`;
+            }
+
+            // Try parsing DD/MM/YYYY (from Excel)
+            parts = s.split('/');
+            if (parts.length === 3 && (parts[2].length === 4 || parts[2].length === 2)) {
+                const day = parts[0].padStart(2, '0');
+                const month = parts[1].padStart(2, '0');
+                let year = parts[2];
+                if (year.length === 2) year = `20${year}`;
+                return `${day}/${month}/${year}`;
+            }
+            
+            return dateString;
+        }
+
+        // --- SINGLE CARD SCRIPT ---
+        function updateCard() {
+            document.getElementById('cardName').innerText = document.getElementById('name').value || 'Your Name';
+            document.getElementById('cardAdmissionNo').innerText = document.getElementById('admissionNo').value || 'Admission No.';
+            document.getElementById('cardCourse').innerText = document.getElementById('course').value || 'Course';
+            document.getElementById('cardBranch').innerText = document.getElementById('branch').value || 'Branch';
+            document.getElementById('cardDob').innerText = formatDate(document.getElementById('dob').value);
+            document.getElementById('cardBloodGroup').innerText = document.getElementById('bloodGroup').value || 'O+';
+            document.getElementById('cardAddress').innerText = document.getElementById('address').value || 'Your Address';
+            document.getElementById('cardCell').innerText = document.getElementById('cell').value || 'Your Cell';
+            document.getElementById('cardValidity').innerText = document.getElementById('validity').value || 'Expiry Date';
+        }
+
+        function previewImage(event, elementId) {
+            const reader = new FileReader();
+            reader.onload = function(){
+                const output = document.getElementById(elementId);
+                output.src = reader.result;
+            };
+            if (event.target.files[0]) {
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        }
+
+        function downloadIDCard(elementId, filename) {
+            const idCard = document.getElementById(elementId);
+            html2canvas(idCard, { scale: 3, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                console.error('Oops, something went wrong!', err);
+            });
+        }
+
+        window.onload = updateCard;
+
+        // --- BULK CARD SCRIPT ---
+        async function processImageUploads(fileInput, storage) {
+            const files = fileInput.files;
+            const promises = [];
+            for (const file of files) {
+                promises.push(new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        storage[file.name] = e.target.result;
+                        resolve();
+                    };
+                    reader.readAsDataURL(file);
+                }));
+            }
+            await Promise.all(promises);
+        }
+
+        async function handleFileUpload() {
+            const excelInput = document.getElementById('excelUpload');
+            const photoInput = document.getElementById('batchPhotoUpload');
+            const signInput = document.getElementById('batchSignUpload');
+
+            if (excelInput.files.length === 0) {
+                alert("Please select an Excel file.");
+                return;
+            }
+
+            imageStore = { photos: {}, signatures: {} };
+            await processImageUploads(photoInput, imageStore.photos);
+            await processImageUploads(signInput, imageStore.signatures);
+
+            const file = excelInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json_data = XLSX.utils.sheet_to_json(worksheet, {raw: false}); 
+                
+                generateCardsFromData(json_data);
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function generateCardsFromData(data) {
+            const previewArea = document.getElementById('batch-preview-area');
+            previewArea.innerHTML = ''; 
+            
+            if (data.length === 0) {
+                previewArea.innerHTML = `<div class="col-span-full text-yellow-800 bg-yellow-50 border border-yellow-300 p-4 rounded-lg">No data found in the Excel sheet.</div>`;
+                return;
+            }
+
+            const headers = Object.keys(data[0]);
+            const requiredHeaders = ['Name', 'AdmissionNo', 'Course', 'Branch', 'DOB', 'BloodGroup', 'Address', 'Cell', 'Validity', 'Photo', 'Signature'];
+            const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+
+            if (missingHeaders.length > 0) {
+                 previewArea.innerHTML = `<div class="col-span-full text-red-700 bg-red-100 border border-red-400 p-4 rounded-lg">
+                    <p class="font-bold">Error: Missing Excel Columns</p>
+                    <p>Your Excel file is missing the following required columns (Note: they are case-sensitive):</p>
+                    <code class="block bg-gray-200 text-red-800 p-2 rounded mt-2 text-sm">${missingHeaders.join(', ')}</code>
+                 </div>`;
+                 document.getElementById('bulk-controls').classList.add('hidden');
+                 return;
+            }
+
+            document.getElementById('bulk-controls').classList.remove('hidden');
+
+            const defaultLogoSrc = document.getElementById('cardLogo').src;
+            const defaultPrincipalSignSrc = document.getElementById('cardPrincipalSign').src;
+            const placeholderPhoto = 'https://placehold.co/80x100/e0e0e0/000?text=No+Photo';
+            const placeholderSign = 'https://placehold.co/80x40/ffffff/000?text=No+Sign';
+
+            data.forEach((student, index) => {
+                const cardId = `batch-card-${index}`;
+                const photoSrc = imageStore.photos[student.Photo] || placeholderPhoto;
+                const signSrc = imageStore.signatures[student.Signature] || placeholderSign;
+
+                const cardHTML = `
+                    <div class="flex flex-col items-center">
+                        <div id="${cardId}" class="id-card-container">
+                            <div class="id-card-header"><h2>JNTUA<br>COLLEGE OF ENGINEERING<br>[AUTONOMOUS]<br>ANANTHAPURAMU-515002[A.P]</h2></div>
+                            <div class="logo-photo">
+                                <img src="${defaultLogoSrc}" alt="College Logo" class="logo">
+                                <img src="${photoSrc}" alt="Student Photo" class="photo" onerror="this.src='${placeholderPhoto}'">
+                                <div class="blood-group">
+                                    <svg class="blood-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="#ff0000" d="M192 512C86 512 0 426 0 320C0 228.8 130.2 57.7 166.6 11.7C172.6 4.2 181.5 0 191.1 0h1.8c9.6 0 18.5 4.2 24.5 11.7C253.8 57.7 384 228.8 384 320c0 106-86 192-192 192z"/></svg>
+                                    <p>${student.BloodGroup || 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div class="details">
+                                <div class="row"><span class="label">Name</span><span class="value">${student.Name || ''}</span></div>
+                                <div class="row"><span class="label">Admission No</span><span class="value">${student.AdmissionNo || ''}</span></div>
+                                <div class="row"><span class="label">Course</span><span class="value">${student.Course || ''}</span></div>
+                                <div class="row"><span class="label">Branch</span><span class="value">${student.Branch || ''}</span></div>
+                                <div class="row"><span class="label">DOB</span><span class="value">${formatDate(student.DOB)}</span></div>
+                            </div>
+                            <hr class="my-2 border-gray-400">
+                            <div class="signatures">
+                                <div class="signature-block"><img src="${signSrc}" alt="Signature" class="sign mx-auto" onerror="this.src='${placeholderSign}'"><p>Student<br>Signature</p></div>
+                                <div class="signature-block"><img src="${defaultPrincipalSignSrc}" alt="Principal Signature" class="sign mx-auto"><p>Principal<br>Signature</p></div>
+                            </div>
+                            <div class="address">
+                                <p><strong>Address:</strong> ${student.Address || ''}<br>
+                                <strong>Cell:</strong> ${student.Cell || ''}</p>
+                            </div>
+                            <div class="validity"><p>Valid Up To: <span>${student.Validity || ''}</span></p></div>
+                        </div>
+                        <button onclick="downloadIDCard('${cardId}', '${student.Name || 'ID_Card'}_${student.AdmissionNo || index}.png')" class="mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg shadow-md hover:bg-blue-700">
+                            Download PNG
+                        </button>
+                    </div>
+                `;
+                previewArea.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        }
+
+        async function downloadAllAsZip() {
+            const downloadBtn = document.getElementById('downloadAllBtn');
+            const pdfBtn = document.getElementById('downloadPdfBtn');
+            const loadingMsg = document.getElementById('loading-message');
+            
+            downloadBtn.disabled = true;
+            pdfBtn.disabled = true;
+            loadingMsg.innerText = 'Preparing files... Please wait.';
+
+            const zip = new JSZip();
+            const cardElements = document.querySelectorAll('#batch-preview-area .id-card-container');
+            
+            const promises = Array.from(cardElements).map(async (card, index) => {
+                const canvas = await html2canvas(card, { scale: 3, useCORS: true });
+                const studentName = card.querySelector('.details .value').innerText || `card_${index}`;
+                const admissionNo = card.querySelectorAll('.details .value')[1].innerText || index;
+                const filename = `${studentName}_${admissionNo}.png`;
+                
+                loadingMsg.innerText = `Zipping ${index + 1} of ${cardElements.length}: ${filename}`;
+
+                return {
+                    name: filename,
+                    data: canvas.toDataURL('image/png').split(';base64,')[1]
+                };
+            });
+
+            const files = await Promise.all(promises);
+            files.forEach(file => zip.file(file.name, file.data, { base64: true }));
+
+            loadingMsg.innerText = 'Creating ZIP file...';
+
+            zip.generateAsync({ type: 'blob' }).then(content => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = 'All_ID_Cards.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                loadingMsg.innerText = 'Download complete!';
+                downloadBtn.disabled = false;
+                pdfBtn.disabled = false;
+            });
+        }
+
+        async function downloadAllAsPdf() {
+            const { jsPDF } = window.jspdf;
+            const downloadBtn = document.getElementById('downloadAllBtn');
+            const pdfBtn = document.getElementById('downloadPdfBtn');
+            const loadingMsg = document.getElementById('loading-message');
+
+            downloadBtn.disabled = true;
+            pdfBtn.disabled = true;
+            loadingMsg.innerText = 'Generating PDF... Please wait.';
+
+            const cardElements = document.querySelectorAll('#batch-preview-area .id-card-container');
+            if (cardElements.length === 0) {
+                alert("No cards to generate PDF.");
+                downloadBtn.disabled = false;
+                pdfBtn.disabled = false;
+                loadingMsg.innerText = '';
+                return;
+            }
+
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const cardWidthMM = 55;
+            const cardHeightMM = 86;
+            const marginX = 10;
+            const marginY = 10;
+            const gapX = 5;
+            const gapY = 5;
+
+            let x = marginX;
+            let y = marginY;
+
+            for (let i = 0; i < cardElements.length; i++) {
+                const card = cardElements[i];
+                loadingMsg.innerText = `Processing card ${i + 1} of ${cardElements.length}...`;
+                const canvas = await html2canvas(card, { scale: 3, useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+
+                if (x + cardWidthMM > pdf.internal.pageSize.getWidth()) {
+                    x = marginX;
+                    y += cardHeightMM + gapY;
+                }
+
+                if (y + cardHeightMM > pdf.internal.pageSize.getHeight()) {
+                    pdf.addPage();
+                    x = marginX;
+                    y = marginY;
+                }
+                
+                pdf.addImage(imgData, 'PNG', x, y, cardWidthMM, cardHeightMM);
+                x += cardWidthMM + gapX;
+            }
+            
+            loadingMsg.innerText = 'Saving PDF...';
+            pdf.save('ID_Cards_Sheet.pdf');
+            
+            loadingMsg.innerText = 'PDF download complete!';
+            downloadBtn.disabled = false;
+            pdfBtn.disabled = false;
+        }
+
+    </script>
+
+</body>
+</html>
